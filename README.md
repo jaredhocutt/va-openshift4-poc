@@ -50,8 +50,11 @@ Create a variable file at `vars/govcloud.yml`:
 ```yaml
 ---
 
-cluster_name: ocp43
-base_domain: govcloud.example.com
+cluster_name: va-ocp43
+base_domain: va.govcloud.rdht.io
+
+rhcos_ami: ami-63516602
+keypair_name: default
 ```
 
 Run playbook:
