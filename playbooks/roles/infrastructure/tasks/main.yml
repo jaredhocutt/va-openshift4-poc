@@ -1,0 +1,27 @@
+---
+# tasks file for infrastructure
+
+- name: Create S3 bucket for storing Terraform state
+  s3_bucket:
+    name: "{{ terraform_bucket }}"
+    versioning: yes
+    state: present
+
+- name: Build infrastructure using Terraform
+  terraform:
+    project_path: "{{ role_path }}/terraform"
+    force_init: yes
+    state: present
+    variables:
+      cluster_name: "{{ cluster_name }}"
+      base_domain: "{{ base_domain }}"
+      vpc_cidr: "{{ vpc_cidr | default(omit) }}"
+      rhcos_ami: "{{ rhcos_ami }}"
+      keypair_name: "{{ keypair_name }}"
+    backend_config:
+      bucket: "{{ terraform_bucket }}"
+      key: terraform.tfstate
+  register: r_terraform_apply
+
+- debug:
+    var: r_terraform_apply
