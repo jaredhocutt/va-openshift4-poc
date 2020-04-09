@@ -405,6 +405,42 @@ resource "aws_lb_listener" "machine_config" {
   }
 }
 
+resource "aws_lb_target_group_attachment" "api_masters" {
+  count = 3
+
+  target_group_arn = "${aws_lb_target_group.api.arn}"
+  target_id        = "${aws_instance.masters[count.index].id}"
+  port             = 6443
+}
+
+resource "aws_lb_target_group_attachment" "api_int_masters" {
+  count = 3
+
+  target_group_arn = "${aws_lb_target_group.api_int.arn}"
+  target_id        = "${aws_instance.masters[count.index].id}"
+  port             = 6443
+}
+
+resource "aws_lb_target_group_attachment" "api_int_bootstrap" {
+  target_group_arn = "${aws_lb_target_group.api_int.arn}"
+  target_id        = "${aws_instance.bootstrap.id}"
+  port             = 6443
+}
+
+resource "aws_lb_target_group_attachment" "machine_config_masters" {
+  count = 3
+
+  target_group_arn = "${aws_lb_target_group.machine_config.arn}"
+  target_id        = "${aws_instance.masters[count.index].id}"
+  port             = 22623
+}
+
+resource "aws_lb_target_group_attachment" "machine_config_bootstrap" {
+  target_group_arn = "${aws_lb_target_group.machine_config.arn}"
+  target_id        = "${aws_instance.bootstrap.id}"
+  port             = 22623
+}
+
 ###############################################################################
 # Security Groups
 ###############################################################################
@@ -527,7 +563,7 @@ resource "aws_iam_role_policy" "bootstrap" {
 }
 
 resource "aws_iam_instance_profile" "bootstrap" {
-  name = "${var.cluster_name}-bootstrap"
+  name = "${var.cluster_name}-bootstrap-profile"
   role = aws_iam_role.bootstrap.name
 }
 
@@ -585,7 +621,7 @@ resource "aws_iam_role_policy" "master" {
 }
 
 resource "aws_iam_instance_profile" "master" {
-  name = "${var.cluster_name}-master"
+  name = "${var.cluster_name}-master-profile"
   role = aws_iam_role.master.name
 }
 
@@ -687,4 +723,42 @@ resource "aws_route53_zone" "private" {
       "Name", "${var.cluster_name}.${var.base_domain}"
     )
   )
+}
+
+resource "aws_route53_record" "api" {
+  zone_id = aws_route53_zone.private.zone_id
+  name    = "api.${var.cluster_name}.${var.base_domain}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [aws_lb.masters_ext.dns_name]
+}
+
+resource "aws_route53_record" "api_int" {
+  zone_id = aws_route53_zone.private.zone_id
+  name    = "api-int.${var.cluster_name}.${var.base_domain}"
+  type    = "CNAME"
+  ttl     = "300"
+  records = [aws_lb.masters_int.dns_name]
+}
+
+resource "aws_route53_record" "etcd" {
+  count = 3
+
+  zone_id = aws_route53_zone.private.zone_id
+  name    = "etcd-${count.index}.${var.cluster_name}.${var.base_domain}"
+  type    = "A"
+  ttl     = "300"
+  records = [aws_instance.masters[count.index].private_ip]
+}
+
+resource "aws_route53_record" "etcd_srv" {
+  zone_id = aws_route53_zone.private.zone_id
+  name    = "_etcd-server-ssl._tcp.${var.cluster_name}.${var.base_domain}"
+  type    = "SRV"
+  ttl     = "300"
+  records = [
+    "0 10 2380 etcd-0.${var.cluster_name}.${var.base_domain}.",
+    "0 10 2380 etcd-1.${var.cluster_name}.${var.base_domain}.",
+    "0 10 2380 etcd-2.${var.cluster_name}.${var.base_domain}."
+  ]
 }
