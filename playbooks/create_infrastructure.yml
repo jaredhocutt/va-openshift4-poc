@@ -4,3 +4,9 @@
   tasks:
     - import_role:
         name: infrastructure
+
+- hosts: bastion
+  tasks:
+    - import_role:
+        name: host_prep
+        tasks_from: bastion
