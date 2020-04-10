@@ -883,7 +883,7 @@ resource "aws_instance" "workers" {
 ###############################################################################
 
 resource "aws_route53_zone" "private" {
-  name = var.base_domain
+  name = "${var.cluster_name}.${var.base_domain}"
 
   vpc {
     vpc_id = aws_vpc.openshift.id
@@ -899,7 +899,7 @@ resource "aws_route53_zone" "private" {
 
 resource "aws_route53_record" "api" {
   zone_id = aws_route53_zone.private.zone_id
-  name    = "api.${var.cluster_name}.${var.base_domain}"
+  name    = "api"
   type    = "CNAME"
   ttl     = "300"
   records = [aws_lb.masters_ext.dns_name]
@@ -907,7 +907,7 @@ resource "aws_route53_record" "api" {
 
 resource "aws_route53_record" "api_int" {
   zone_id = aws_route53_zone.private.zone_id
-  name    = "api-int.${var.cluster_name}.${var.base_domain}"
+  name    = "api-int"
   type    = "CNAME"
   ttl     = "300"
   records = [aws_lb.masters_int.dns_name]
@@ -917,7 +917,7 @@ resource "aws_route53_record" "etcd" {
   count = 3
 
   zone_id = aws_route53_zone.private.zone_id
-  name    = "etcd-${count.index}.${var.cluster_name}.${var.base_domain}"
+  name    = "etcd-${count.index}"
   type    = "A"
   ttl     = "300"
   records = [aws_instance.masters[count.index].private_ip]
@@ -925,7 +925,7 @@ resource "aws_route53_record" "etcd" {
 
 resource "aws_route53_record" "etcd_srv" {
   zone_id = aws_route53_zone.private.zone_id
-  name    = "_etcd-server-ssl._tcp.${var.cluster_name}.${var.base_domain}"
+  name    = "_etcd-server-ssl._tcp"
   type    = "SRV"
   ttl     = "300"
   records = [
