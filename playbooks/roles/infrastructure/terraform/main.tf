@@ -892,7 +892,7 @@ resource "aws_route53_zone" "private" {
   tags = merge(
     local.kubernetes_cluster_owned_tag,
     map(
-      "Name", "${var.cluster_name}.${var.base_domain}"
+      "Name", "${var.cluster_name}-int"
     )
   )
 }
