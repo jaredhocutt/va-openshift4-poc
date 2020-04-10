@@ -32,8 +32,12 @@ data "aws_ami" "rhel7" {
 ###############################################################################
 
 locals {
-  common_tags = map(
+  kubernetes_cluster_shared_tag = map(
     "kubernetes.io/cluster/${var.cluster_name}", "shared"
+  )
+
+  kubernetes_cluster_owned_tag = map(
+    "kubernetes.io/cluster/${var.cluster_name}", "owned"
   )
 
   public_subnets = [
@@ -87,7 +91,7 @@ resource "aws_subnet" "public0" {
   map_public_ip_on_launch = true
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-public-${data.aws_availability_zones.available.names[0]}"
     )
@@ -101,7 +105,7 @@ resource "aws_subnet" "public1" {
   map_public_ip_on_launch = true
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-public-${data.aws_availability_zones.available.names[1]}"
     )
@@ -115,7 +119,7 @@ resource "aws_subnet" "public2" {
   map_public_ip_on_launch = true
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-public-${data.aws_availability_zones.available.names[2]}"
     )
@@ -220,7 +224,7 @@ resource "aws_subnet" "private0" {
   map_public_ip_on_launch = false
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-private-${data.aws_availability_zones.available.names[0]}"
     )
@@ -234,7 +238,7 @@ resource "aws_subnet" "private1" {
   map_public_ip_on_launch = false
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-private-${data.aws_availability_zones.available.names[1]}"
     )
@@ -248,7 +252,7 @@ resource "aws_subnet" "private2" {
   map_public_ip_on_launch = false
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-private-${data.aws_availability_zones.available.names[2]}"
     )
@@ -325,7 +329,7 @@ resource "aws_lb" "masters_ext" {
   ]
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-ext"
     )
@@ -344,7 +348,7 @@ resource "aws_lb" "masters_int" {
   ]
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-int"
     )
@@ -803,7 +807,7 @@ resource "aws_instance" "bootstrap" {
   EOF
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-bootstrap"
     )
@@ -834,7 +838,7 @@ resource "aws_instance" "masters" {
   EOF
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-master-${count.index}"
     )
@@ -865,7 +869,7 @@ resource "aws_instance" "workers" {
   EOF
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_shared_tag,
     map(
       "Name", "${var.cluster_name}-worker-${count.index}"
     )
@@ -886,7 +890,7 @@ resource "aws_route53_zone" "private" {
   }
 
   tags = merge(
-    local.common_tags,
+    local.kubernetes_cluster_owned_tag,
     map(
       "Name", "${var.cluster_name}.${var.base_domain}"
     )
