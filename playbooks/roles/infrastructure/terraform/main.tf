@@ -829,7 +829,6 @@ resource "aws_instance" "masters" {
   iam_instance_profile        = aws_iam_instance_profile.master.name
   associate_public_ip_address = false
 
-  # user_data = "{\"ignition\":{\"config\":{\"replace\":{\"source\":\"http://${aws_instance.bastion.private_ip}/master.ign\",\"verification\":{}}},\"timeouts\":{},\"version\":\"2.1.0\"},\"networkd\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}"
   user_data = <<-EOF
   {"ignition":{"config":{"replace":{"source":"http://${aws_instance.bastion.private_ip}/master.ign","verification":{}}},"timeouts":{},"version":"2.1.0"},"networkd":{},"passwd":{},"storage":{},"systemd":{}}
   EOF
@@ -861,7 +860,6 @@ resource "aws_instance" "workers" {
   iam_instance_profile        = aws_iam_instance_profile.worker.name
   associate_public_ip_address = false
 
-  # user_data = "{\"ignition\":{\"config\":{\"replace\":{\"source\":\"http://${aws_instance.bastion.private_ip}/worker.ign\",\"verification\":{}}},\"timeouts\":{},\"version\":\"2.1.0\"},\"networkd\":{},\"passwd\":{},\"storage\":{},\"systemd\":{}}"
   user_data = <<-EOF
   {"ignition":{"config":{"replace":{"source":"http://${aws_instance.bastion.private_ip}/worker.ign","verification":{}}},"timeouts":{},"version":"2.1.0"},"networkd":{},"passwd":{},"storage":{},"systemd":{}}
   EOF

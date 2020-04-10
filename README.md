@@ -50,11 +50,26 @@ Create a variable file at `vars/govcloud.yml`:
 ```yaml
 ---
 
-cluster_name: va-ocp43
-base_domain: va.govcloud.rdht.io
+openshift_version: 4.3.8
 
-rhcos_ami: ami-63516602
+cluster_name: ocp43
+base_domain: example.com
+
+rhcos_ami: your_ami_id
 keypair_name: default
+keypair_path: ~/.ssh/path/to/key.pem
+
+commercial_aws_access_key_id: your_access_key
+commercial_aws_secret_access_key: your_secret_key
+govcloud_aws_access_key_id: your_access_key
+govcloud_aws_secret_access_key: your_secret_key
+
+ssh_public_key: your_public_key
+additional_authorized_keys:
+  - your_public_key1
+  - your_public_key2
+
+pull_secret: 'your_pull_secret'
 ```
 
 Run playbook:
