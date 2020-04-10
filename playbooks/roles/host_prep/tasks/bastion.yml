@@ -1,5 +1,20 @@
 ---
 
+- name: Copy SSH key
+  copy:
+    src: "{{ keypair_path }}"
+    dest: ~/.ssh/id_rsa
+    owner: "{{ ansible_user_uid }}"
+    group: "{{ ansible_user_gid }}"
+    mode: 0600
+
+- name: Add additional authorized keys
+  authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ item }}"
+    state: present
+  loop: "{{ additional_authorized_keys }}"
+
 - name: Install required packages
   yum:
     name:
@@ -12,10 +27,16 @@
     state: present
   become: yes
 
+- name: Check for OpenShift installer
+  stat:
+    path: /usr/local/bin/openshift-install
+  register: r_check_openshift_installer
+
 - name: Create temporary download directory
   tempfile:
     state: directory
   register: r_create_temp_download_dir
+  when: not r_check_openshift_installer.stat.exists
 
 - name: Install OpenShift installer and client
   block:
@@ -58,6 +79,7 @@
       file:
         path: "{{ r_create_temp_download_dir.path }}"
         state: absent
+  when: not r_check_openshift_installer.stat.exists
 
 - name: Start and enable httpd
   service:

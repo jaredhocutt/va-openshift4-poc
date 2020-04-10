@@ -1,0 +1,123 @@
+---
+# tasks file for openshift_install
+
+- name: Create OpenShift installation directory
+  file:
+    path: "{{ openshift_install_dir }}"
+    owner: "{{ ansible_user_uid }}"
+    group: "{{ ansible_user_gid }}"
+    mode: 0755
+    state: directory
+
+- name: Create OpenShift install-config.yaml
+  template:
+    src: install-config.yaml.j2
+    dest: "{{ openshift_install_dir }}/install-config.yaml"
+    owner: "{{ ansible_user_uid }}"
+    group: "{{ ansible_user_gid }}"
+    mode: 0644
+
+- name: Generate OpenShift manifests
+  command: openshift-install create manifests
+  args:
+    chdir: "{{ openshift_install_dir }}"
+  environment:
+    AWS_ACCESS_KEY_ID: "{{ commercial_aws_access_key_id }}"
+    AWS_SECRET_ACCESS_KEY: "{{ commercial_aws_secret_access_key }}"
+    AWS_REGION: us-east-1
+
+- name: Mark masters as not scheduleable
+  lineinfile:
+    path: "{{ openshift_install_dir }}/manifests/cluster-scheduler-02-config.yml"
+    regexp: '^(\s*mastersSchedulable:)'
+    line: '\1 false'
+    backrefs: yes
+
+- name: Find manifests defining control plane machines
+  find:
+    paths: "{{ openshift_install_dir }}/openshift"
+    patterns: "99_openshift-cluster-api_master-machines-*.yaml"
+  register: r_find_manifests_control_plane_machines
+
+- name: Remove manifests defining control plane machines
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ r_find_manifests_control_plane_machines.files }}"
+
+- name: Find manifests defining worker machines
+  find:
+    paths: "{{ openshift_install_dir }}/openshift"
+    patterns: "99_openshift-cluster-api_worker-machineset-*.yaml"
+  register: r_find_manifests_worker_machines
+
+- name: Remove manifests defining worker machines
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ r_find_manifests_worker_machines.files }}"
+
+- name: Remove cloud credentials operator secret
+  file:
+    path: "{{ openshift_install_dir }}/{{ item }}"
+    state: absent
+  loop:
+    - openshift/99_cloud-creds-secret.yaml
+    - openshift/99_role-cloud-creds-secret-reader.yaml
+
+- name: Create cloud credentials secrets
+  template:
+    src: cloud-credentials-secret.yaml.j2
+    dest: "{{ openshift_install_dir }}/{{ item.dest }}"
+  vars:
+    secret_name: "{{ item.name }}"
+    secret_namespace: "{{ item.namespace }}"
+  loop:
+    - name: cloud-credentials
+      namespace: openshift-ingress-operator
+      dest: openshift/99_openshift-ingress-operator_cloud-credentials-secret.yaml
+    - name: aws-cloud-credentials
+      namespace: openshift-machine-api
+      dest: openshift/99_openshift-machine-api_aws-cloud-credentials-secret.yaml
+    - name: installer-cloud-credentials
+      namespace: openshift-image-registry
+      dest: openshift/99_openshift-image-registry_installer-cloud-credentials-secret.yaml
+
+- name: Read cluster infrastructure configuration
+  slurp:
+    src: "{{ openshift_install_dir }}/manifests/cluster-infrastructure-02-config.yml"
+  register: r_slurp_cluster_infrastructure_config
+
+- name: Find all manifest files
+  find:
+    paths: "{{ openshift_install_dir }}"
+    file_type: file
+    hidden: yes
+    recurse: yes
+  register: r_find_all_manifest_files
+
+- name: Replace infrastructure name in manifest files
+  replace:
+    path: "{{ item.path }}"
+    regexp: "{{ r_slurp_cluster_infrastructure_config.content | b64decode | regex_search('infrastructureName: (\\S+)') | regex_replace('infrastructureName: (\\S+)', '\\1') }}"
+    replace: "{{ cluster_name }}"
+  loop: "{{ r_find_all_manifest_files.files }}"
+
+- name: Generate OpenShift ignition configs
+  command: openshift-install create ignition-configs
+  args:
+    chdir: "{{ openshift_install_dir }}"
+
+- name: Copy OpenShift ignition configs to httpd
+  copy:
+    src: "{{ openshift_install_dir }}/{{ item }}.ign"
+    dest: /var/www/html
+    owner: root
+    group: root
+    mode: 0644
+    remote_src: yes
+  become: yes
+  loop:
+    - bootstrap
+    - master
+    - worker

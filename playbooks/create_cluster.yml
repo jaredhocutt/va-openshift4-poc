@@ -10,3 +10,5 @@
     - import_role:
         name: host_prep
         tasks_from: bastion
+    - import_role:
+        name: openshift_install

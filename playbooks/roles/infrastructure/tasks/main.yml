@@ -28,3 +28,11 @@
     name: bastion
     ansible_host: "{{ r_terraform_apply.outputs.bastion.value.public_ip }}"
     ansible_ssh_private_key_file: "{{ keypair_path }}"
+  changed_when: no
+
+- name: Wait for bastion to boot
+  wait_for:
+    host: "{{ hostvars['bastion'].ansible_host }}"
+    port: 22
+    search_regex: OpenSSH
+  delegate_to: localhost
