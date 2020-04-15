@@ -14,7 +14,7 @@ Export `PATH` to include downloaded dependencies:
 export PATH=$(pwd)/bin:$PATH
 ```
 
-**TODO: Include directions for install `pipenv`**
+**TODO: Include directions for installing `pipenv`**
 
 Setup your Python environment for Ansible:
 
@@ -75,5 +75,5 @@ pull_secret: 'your_pull_secret'
 Run playbook:
 
 ```bash
-ansible-playbook -e @vars/govcloud.yml playbooks/create_infrastructure.yml -v
+ansible-playbook -e @vars/govcloud.yml playbooks/create_cluster.yml -v
 ```
