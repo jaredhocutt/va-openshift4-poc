@@ -7,7 +7,7 @@ verify_ssl = true
 aws-shell = "*"
 
 [packages]
-ansible = ">=2.9,<2.10"
+ansible = ">=2.9,<2.11"
 boto = "*"
 boto3 = "*"
 botocore = "*"
